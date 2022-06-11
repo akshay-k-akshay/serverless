@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: serverless Lambda and ApiGatewayV2 Routes and integrations
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+
+Resources:
+  ExpressLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Ref AWS::StackName
+      Runtime: nodejs14.x
+      Handler: src/serverless.handler
+      MemorySize: 512
+      Timeout: 30
+      Tracing: Active
+      Tags:
+        Name: !Ref AWS::StackName
+        Environment: !Ref Environment
+
+  LambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !ImportValue
+        Fn::Sub: apigateway-id-${Environment}
+      Description: sample Lambda Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub
+        - arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionArn}/invocations
+        - { FunctionArn: !GetAtt ExpressLambdaFunction.Arn }
+      IntegrationMethod: POST
+      PayloadFormatVersion: 2.0
+
+  SampleRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DependsOn:
+      - LambdaIntegration
+    Properties:
+      ApiId: !ImportValue
+        Fn::Sub: apigateway-id-${Environment}
+      RouteKey: ANY /sample
+      AuthorizationType: NONE
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref LambdaIntegration
+
+  SampleProxyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DependsOn:
+      - LambdaIntegration
+    Properties:
+      ApiId: !ImportValue
+        Fn::Sub: apigateway-id-${Environment}
+      RouteKey: ANY /sample/{proxy+}
+      AuthorizationType: NONE
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref LambdaIntegration
+
+Outputs:
+  LambdaFunctionConsoleUrl:
+    Description: Console URL for the Lambda Function.
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/lambda/home?region=${AWS::Region}#/functions/${ExpressLambdaFunction}
+
+  SampleRouteConsoleUrl:
+    Description: Console URL for classes route in ApiGatewayV2
+    Value: !Sub
+      - https://${AWS::Region}.console.aws.amazon.com/apigateway/main/develop/routes?api=${ApiGatewayId}&routes=${SampleRoute}
+      - ApiGatewayId: !ImportValue
+          Fn::Sub: apigateway-id-${Environment}
