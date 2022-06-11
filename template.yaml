@@ -6,26 +6,36 @@ Parameters:
   Environment:
     Type: String
     Default: prod
+  DB_URL:
+    Type: String
+    Default: "add your db url here"
 
 Resources:
   ExpressLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Ref AWS::StackName
+      PackageType: Zip
       Runtime: nodejs14.x
       Handler: src/serverless.handler
       MemorySize: 512
       Timeout: 30
       Tracing: Active
+      Environment:
+        Variables:
+          NODE_ENV: !Sub ${Environment}
+          DB_URL: !Sub ${DB_URL}
       Tags:
         Name: !Ref AWS::StackName
         Environment: !Ref Environment
+    Metadata:
+        SamResourceId: ExpressLambdaFunction
 
   LambdaIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
       ApiId: !ImportValue
-        Fn::Sub: apigateway-id-${Environment}
+        Fn::Sub: apigateway-id-prod
       Description: sample Lambda Integration
       IntegrationType: AWS_PROXY
       IntegrationUri: !Sub
@@ -40,7 +50,7 @@ Resources:
       - LambdaIntegration
     Properties:
       ApiId: !ImportValue
-        Fn::Sub: apigateway-id-${Environment}
+        Fn::Sub: apigateway-id-prod
       RouteKey: ANY /sample
       AuthorizationType: NONE
       Target: !Join
@@ -54,7 +64,7 @@ Resources:
       - LambdaIntegration
     Properties:
       ApiId: !ImportValue
-        Fn::Sub: apigateway-id-${Environment}
+        Fn::Sub: apigateway-id-prod
       RouteKey: ANY /sample/{proxy+}
       AuthorizationType: NONE
       Target: !Join
@@ -62,6 +72,15 @@ Resources:
         - - integrations
           - !Ref LambdaIntegration
 
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt ExpressLambdaFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !ImportValue
+        Fn::Sub: apigateway-arn-${Environment}
+        
 Outputs:
   LambdaFunctionConsoleUrl:
     Description: Console URL for the Lambda Function.
@@ -72,4 +91,4 @@ Outputs:
     Value: !Sub
       - https://${AWS::Region}.console.aws.amazon.com/apigateway/main/develop/routes?api=${ApiGatewayId}&routes=${SampleRoute}
       - ApiGatewayId: !ImportValue
-          Fn::Sub: apigateway-id-${Environment}
+          Fn::Sub: apigateway-id-prod

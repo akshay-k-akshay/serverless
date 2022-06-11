@@ -16,6 +16,12 @@ const schema = {
     default: "dev",
     env: "NODE_ENV"
   },
+  db: {
+    url: {
+      default: "mongodb://localhost/sampleDb",
+      env: "DB_URL"
+    }
+  }
 };
 
 convict.addFormat(url);

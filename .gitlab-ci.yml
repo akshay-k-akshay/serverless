@@ -1,19 +1,19 @@
-default:
-  image: amazon/aws-sam-cli-build-image-nodejs14.x
+# default:
+#   image: amazon/aws-sam-cli-build-image-nodejs14.x
 
-before_script:
-  - npm --version
-  - npm ci --also=dev
+# before_script:
+#   - npm --version
+#   - npm ci --also=dev
 
-stages:
-  - deploy
+# stages:
+#   - deploy
 
-validate:
-  stage: deploy
-  script: npm run sam:validate
+# validate:
+#   stage: deploy
+#   script: npm run sam:validate
 
-.deploy:
-  stage: deploy
-  script:
-    - npm run sam:build
-    - npm run sam:deploy
+# .deploy:
+#   stage: deploy
+#   script:
+#     - npm run sam:build
+#     - npm run sam:deploy

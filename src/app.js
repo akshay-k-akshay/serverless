@@ -10,6 +10,9 @@ const { errorHandler } = require("./middlewares");
 
 const app = express();
 
+//db connection
+dbConfig();
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

@@ -10,8 +10,7 @@ module.exports = {
   },
 
   list: async (limit, page) => {
-    const skip = (page - 1) * limit;
-    return await Sample.list(limit, skip);
+    return await Sample.list(limit, page, { _id: 1, title: 1 });
   },
 
   find: async (id) => {

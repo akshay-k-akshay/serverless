@@ -1,37 +1,42 @@
-
-const fs = require("fs");
-const path = require("path");
+const { Sample } = require("../models/sample");
 
 module.exports = {
   create: async (sampleData) => {
-    const data = JSON.parse(fs.readFileSync(path.join(__dirname, "../../resources/db.json")));
-    sampleData.id = data.length + 1;
-    data.push(sampleData);
-    fs.writeFileSync(path.join(__dirname, "../../resources/db.json"), JSON.stringify(data));
-    return sampleData;
+    const sample = new Sample({
+      title: sampleData.title
+    });
+
+    return await sample.save();
   },
 
-  list: async (limit, skip) => {
-    const data = JSON.parse(fs.readFileSync(path.join(__dirname, "../../resources/db.json")));
+  list: async (limit, page, projection) => {
+    let results = await Sample.aggregate([
+      { $match: {} },
+      { $project: projection },
+      {
+        $facet: {
+          data: [{ $skip: limit * (page - 1) }, { $limit: limit }],
+          pagination: [{ $count: "total" }]
+        }
+      }
+    ]);
+    results = results[0];
+
     return {
-      data: data.slice(skip, skip + limit),
+      data: results.data,
       meta: {
-        total: data.length,
-        limit
+        total: results.pagination[0].total,
+        limit,
+        page
       }
     };
   },
 
   find: async (id) => {
-    const data = JSON.parse(fs.readFileSync(path.join(__dirname, "../../resources/db.json")));
-    return data.find((sample) => sample.id === id);
+    return await Sample.findOne({ _id: id });
   },
 
   delete: async (id) => {
-    const data = JSON.parse(fs.readFileSync(path.join(__dirname, "../../resources/db.json")));
-    const index = data.findIndex((sample) => sample.id === id);
-    data.splice(index, 1);
-    fs.writeFileSync(path.join(__dirname, "../../resources/db.json"), JSON.stringify(data));
+    return await Sample.deleteOne({ _id: id });
   }
 };
-
