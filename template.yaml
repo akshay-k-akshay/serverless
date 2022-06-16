@@ -6,9 +6,6 @@ Parameters:
   Environment:
     Type: String
     Default: prod
-  DB_URL:
-    Type: String
-    Default: "add your db url here"
 
 Resources:
   ExpressLambdaFunction:
@@ -24,12 +21,11 @@ Resources:
       Environment:
         Variables:
           NODE_ENV: !Sub ${Environment}
-          DB_URL: !Sub ${DB_URL}
       Tags:
         Name: !Ref AWS::StackName
         Environment: !Ref Environment
     Metadata:
-        SamResourceId: ExpressLambdaFunction
+      SamResourceId: ExpressLambdaFunction
 
   LambdaIntegration:
     Type: AWS::ApiGatewayV2::Integration
@@ -80,7 +76,7 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !ImportValue
         Fn::Sub: apigateway-arn-${Environment}
-        
+
 Outputs:
   LambdaFunctionConsoleUrl:
     Description: Console URL for the Lambda Function.
