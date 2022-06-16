@@ -12,7 +12,7 @@ const schema = {
   },
   node_env: {
     doc: "The application environment.",
-    format: ["dev", "prod", "test"],
+    format: ["dev", "prod", "staging"],
     default: "dev",
     env: "NODE_ENV"
   },
@@ -20,6 +20,14 @@ const schema = {
     url: {
       default: "mongodb://localhost/sampleDb",
       env: "DB_URL"
+    },
+    user: {
+      default: "user not set",
+      env: "DB_USER"
+    },
+    password: {
+      default: "password not set",
+      env: "DB_PASSWORD"
     }
   }
 };
