@@ -43,9 +43,5 @@
     "eslint": "^7.32.0",
     "nodemon": "^2.0.16",
     "prettier": "^2.3.2"
-  },
-  "keywords": [
-    "nodejs",
-    "express js"
-  ]
+  }
 }

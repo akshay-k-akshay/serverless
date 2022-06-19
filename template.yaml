@@ -8,6 +8,34 @@ Parameters:
     Default: prod
 
 Resources:
+  HttpApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/apigateway/serverless/
+      RetentionInDays: 14
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DisableExecuteApiEndpoint: false
+      AccessLogSettings:
+        DestinationArn: !GetAtt HttpApiLogGroup.Arn
+        Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod","routeKey":"$context.routeKey", "path": "$context.path", "status":"$context.status","protocol":"$context.protocol", "responseLength":"$context.responseLength", "integrationError:"$context.integrationErrorMessage" }'
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+          - OPTIONS
+          - POST
+          - PUT
+          - DELETE
+        AllowOrigins:
+          - http://localhost:8080
+        AllowHeaders:
+          - "*"
+        ExposeHeaders:
+          - "Date, x-api-id"
+        AllowCredentials: true
+
   ExpressLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -30,8 +58,7 @@ Resources:
   LambdaIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
-      ApiId: !ImportValue
-        Fn::Sub: apigateway-id-prod
+      ApiId: !Ref HttpApi
       Description: sample Lambda Integration
       IntegrationType: AWS_PROXY
       IntegrationUri: !Sub
@@ -45,8 +72,7 @@ Resources:
     DependsOn:
       - LambdaIntegration
     Properties:
-      ApiId: !ImportValue
-        Fn::Sub: apigateway-id-prod
+      ApiId: !Ref HttpApi
       RouteKey: ANY /sample
       AuthorizationType: NONE
       Target: !Join
@@ -59,8 +85,7 @@ Resources:
     DependsOn:
       - LambdaIntegration
     Properties:
-      ApiId: !ImportValue
-        Fn::Sub: apigateway-id-prod
+      ApiId: !Ref HttpApi
       RouteKey: ANY /sample/{proxy+}
       AuthorizationType: NONE
       Target: !Join
@@ -74,8 +99,7 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt ExpressLambdaFunction.Arn
       Principal: apigateway.amazonaws.com
-      SourceArn: !ImportValue
-        Fn::Sub: apigateway-arn-${Environment}
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*
 
 Outputs:
   LambdaFunctionConsoleUrl:
@@ -86,5 +110,10 @@ Outputs:
     Description: Console URL for classes route in ApiGatewayV2
     Value: !Sub
       - https://${AWS::Region}.console.aws.amazon.com/apigateway/main/develop/routes?api=${ApiGatewayId}&routes=${SampleRoute}
-      - ApiGatewayId: !ImportValue
-          Fn::Sub: apigateway-id-prod
+      - ApiGatewayId: !Ref HttpApi
+
+  ApiUrl:
+    Description: URL for the API Gateway.
+    Value: !Sub
+      - https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/
+      - HttpApi: !Ref HttpApi
